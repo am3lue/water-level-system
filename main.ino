@@ -23,70 +23,100 @@
  * pass INC as a parameter.
  * Example: ultrasonic.read(INC)
  *
- * created 3 Apr 2014
  *
- * by Erick Simões (github: @am3lue | twitter: @am3lue)
+ * by Blue Francis (github: @am3lue | twitter: @am3lue)
  *
  * This example code is released into the MIT License.
  */
 
-#include <Ultrasonic.h>
-
 /*
- * Pass as a parameter the trigger and echo pin, respectively,
- * or only the signal pin (for sensors 3 pins), like:
- * Ultrasonic ultrasonic(13);
+ * Ultrasonic Water Level Monitoring System
+ * Displays water volume percentage and status on an I2C LCD.
+ *
+ * Compatible with 4-pin (HC-SR04) and 3-pin ultrasonic sensors.
+ * Author: Blue Francis
+ * License: MIT
  */
-Ultrasonic ultrasonic(5, 6);
-int distance;
-float percentvol;
-float volume;
 
-//Initializing The Libraries of lcd
+#include <Ultrasonic.h>
 #include <LiquidCrystal_I2C.h>
-LiquidCrystal_I2C lcd(0x27, 16, 4);
 
+// =============================
+// USER CONFIGURABLE SETTINGS
+// =============================
+const int TRIGGER_PIN = 5;              // Pin for Trig
+const int ECHO_PIN = 6;                 // Pin for Echo
+const float MAX_VOLUME_CM3 = 2258211.45; // Tank capacity in cubic centimeters
+const float AREA_MULTIPLIER = 14379.944; // Area factor for volume calculation
+const int VOLUME_THRESHOLD_CM3 = 1000000; // Minimum acceptable volume
 
+// LCD settings
+LiquidCrystal_I2C lcd(0x27, 16, 4); // I2C address 0x27, 16 columns x 4 rows
+
+// Ultrasonic sensor object
+Ultrasonic ultrasonic(TRIGGER_PIN, ECHO_PIN);
+
+// =============================
+// SETUP
+// =============================
 void setup() {
+  Serial.begin(9600);
 
-  //Set Up for the lcd
   lcd.init();
   lcd.backlight();
   lcd.clear();
 
-  Serial.begin(9600);
+  displayWelcomeMessage();
 }
 
+// =============================
+// MAIN LOOP
+// =============================
 void loop() {
-  // Pass INC as a parameter to get the distance in inches
-  distance = ultrasonic.read();
+  int distance = ultrasonic.read(); // in centimeters
 
-  // calculations for Volume of the vessel
-  volume =2258211.45 - distance*14379.944;// The area is in m hence distance * 100 
+  // Calculate water volume
+  float currentVolume = MAX_VOLUME_CM3 - distance * AREA_MULTIPLIER;
+  float percentFull = (currentVolume / MAX_VOLUME_CM3) * 100 + 10;
 
-  percentvol = (volume/2258211.45)*100 + 10;
-  if (volume >= 0){
-  Serial.print("volume in cubic cm: ");
-  Serial.println(percentvol,0);
-  delay(1000);
+  if (currentVolume >= 0) {
+    Serial.print("Water Level: ");
+    Serial.print(percentFull, 0);
+    Serial.println("%");
 
-  if (volume >= 1000*1000){
-    print("Maji yanatosha...");
+    // Decide water level status
+    String status = (currentVolume >= VOLUME_THRESHOLD_CM3) ?
+                    "Water is enough" :
+                    "Water is low";
+
+    displayStatus(percentFull, status);
   }
-  else if (volume <= 1000*1000){
-    print("maji Hayatoshi");
-  }
-  }
+
+  delay(1000); // 1-second delay
 }
 
-void print(String input){
+// =============================
+// HELPER FUNCTIONS
+// =============================
+
+void displayWelcomeMessage() {
+  lcd.setCursor(0, 0);
+  lcd.print("Blue Francis");
+  lcd.setCursor(0, 1);
+  lcd.print("Water Level Monitor");
+  delay(3000);
   lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print("Arusha Science");
-  lcd.setCursor(0,1);
-  lcd.print("Mfumo wa kiwango cha maji");
-  lcd.setCursor(0,2);
-  lcd.print("");
-  lcd.setCursor(0,3);
-  lcd.print(input);
+}
+
+void displayStatus(float percentage, String message) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Level: ");
+  lcd.print(percentage, 0);
+  lcd.print("%");
+
+  lcd.setCursor(0, 2);
+  lcd.print("Status: ");
+  lcd.setCursor(0, 3);
+  lcd.print(message);
 }

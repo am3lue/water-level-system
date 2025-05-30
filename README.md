@@ -1,6 +1,4 @@
-Here’s the complete and beautifully formatted README in one code block:
 
-```markdown
 # 🌊 Water Level Project
 
 ## 🌟 Overview
@@ -47,6 +45,3 @@ This project is open-source and licensed under the MIT License.
 ## 👤 Author
 
 Created by [am3lue](https://github.com/am3lue).
-```
-
-You can copy and paste this into your `README.md` file. Let me know if you need any further changes!
